@@ -1,0 +1,3 @@
+tabulate
+tabulate[widechars]
+emoji
