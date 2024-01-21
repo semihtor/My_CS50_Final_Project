@@ -70,7 +70,7 @@ def display_board(history):
     
     print(table)
 
-def bulls_and_cows_game():
+def main():
 
     if(os.name == 'posix'):
         os.system('clear')
@@ -246,4 +246,4 @@ def bulls_and_cows_game():
 
 
 if __name__ == "__main__":
-    bulls_and_cows_game()
+    main()
