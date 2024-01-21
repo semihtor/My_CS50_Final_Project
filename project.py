@@ -1,3 +1,5 @@
+import os
+import sys
 import random
 import emoji
 from tabulate import tabulate
@@ -13,14 +15,19 @@ class NoCheatCodeError(Exception):
     "Raised when the input value is Konami cheat code"
     pass
 
+class IncorrectRuleAnswerError(Exception):
+    "Raised when the user answers the rule question anything other than y or n"
+    pass
 
-def generate_code(difficulty, duplicates_allowed):
-    # duplicates_allowed will be 1 or 0
+def generate_secret_code(difficulty, duplicates_allowed_answer):
+    # Generate a random 4-digit secret code with or without duplicate digits.
+    # difficulty will be integer and duplicates_allowed_answer will be boolean
+    # code will be generated as string
     code = ""
 
     numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-    if duplicates_allowed == 1:
+    if duplicates_allowed_answer:
         for _ in range(0, difficulty):
             random_integer = str(random.randint(1, 9))
             code += random_integer
@@ -30,85 +37,44 @@ def generate_code(difficulty, duplicates_allowed):
             code += str(numbers[x])
     return code
 
-def create_game_board(difficulty):
-    
-    headers = ["GUESS", "RESPONSE"]
-
-    #round count according to difficulty
-    round_count = {2: 6, 3: 9, 4: 12, 5: 15}
-
-    guess_placeholder = " G " * difficulty
-
-    red_circle = emoji.emojize(":red_circle:")
-
-    white_cricle = emoji.emojize(":white_circle:")
-
-    response_placeholder = (red_circle + white_cricle) * 2
-
-    rounds_placeholder = [guess_placeholder, response_placeholder]
-
-    rounds_table = []
-
-    for x in range(0, round_count[difficulty]):
-        rounds_table.insert(x, rounds_placeholder)
-
-    # print(rounds_table)
-    
-    print(tabulate(rounds_table, headers, tablefmt = "grid", colalign=("center", "center")))
-
-def compare_answer_to_generated_code(code, answer, difficulty):
-    #code answer will be 2,3,4 or 5 digit numbers turned to strings
+def evaluate_guess(code, answer):
+    #code and answer will be 2,3,4 or 5 digit numbers turned to strings
     correct_digit = 0
 
     correct_placement = 0
     
     x = 0
 
-    for x in range(0, difficulty):
+    for x in range(0, len(code)):
         if answer[x] == code[x]:
             correct_placement += 1
         elif answer[x] in code:
             correct_digit += 1
     
     return correct_placement, correct_digit
+
+def display_board(history):
+    # Display the Bulls and Cows game board with emojis.
+    headers = ["GUESS", "HINTS"]
+    table = tabulate(history, headers, tablefmt="grid", colalign=("center", "center"))
     
-def check_user_guess_for_game_compatibility(difficulty):
+    # clear screen before printing the board
+    # posix is os name for Linux or mac
+    if(os.name == 'posix'):
+        os.system('clear')
+    # else screen will be cleared for windows
+    else:
+        os.system('cls')
     
-    while True:
-        
-        try:
-            user_guess = input("Please enter your guess: ")
+    print(table)
 
-            if user_guess == "up up down down left right left right b a start" or user_guess == "up up down down left right left right b a select":
-                raise NoCheatCodeError
-            else:
-                user_guess = user_guess.replace(" ", "")
-            
-            if not user_guess.isdigit():
-                raise AnswerNotAllDigitsException
-            elif len(user_guess) != difficulty:
-                raise AnswerNotCompatibleWithDifficultyException
-            else:
-                return user_guess
-        
-        except AnswerNotCompatibleWithDifficultyException:
-            print(f"Please enter an answer containing {difficulty} digits")
-
-        except AnswerNotAllDigitsException:
-            print("Please enter an answer containing only digits")
-        
-        except NoCheatCodeError:
-            print(emoji.emojize("Sorry, this game doesn't support the iconic KONAMI code :disappointed_face:"))
-
-
-def main():
+def bulls_and_cows_game():
     
     print("Welcome to Bulls and Cows game in Python.")
-    duplicate_preference = False
-
+    
     #round count according to difficulty
     round_count_per_difficulty = {2: 6, 3: 9, 4: 12, 5: 15}
-
+    
     # Ask to display the rules or not
     while True:
 
@@ -124,8 +90,9 @@ def main():
                       "In this Python version, there is only one player (you). The program generates the code and the player tries to decipher it.\n" + 
                       "As an added difficulty, the player is asked if duplicate numbers are allowed or not.\n" + 
                       "The player chooses a difficulty (2, 3, 4 or 5 + . This determines the digits in the code and the number of rounds.\n" + 
-                      emoji.emojize("A correct digit in a correct place is indicated with a :green_circle:.\n")  + 
-                      emoji.emojize("A correct digit in an incorrect place is indicated with a :yellow_circle:.\n") + 
+                      emoji.emojize("Presence of a correct digit in a correct place is indicated with a :green_circle:.\n")  + 
+                      emoji.emojize("Presence of a correct digit in an incorrect place is indicated with a :yellow_circle:.\n") + 
+                      "Note that these indications do not present the placement of the digits.\n" + 
                       "If the player isn't able to guess the code before the number of rounds are up, the game is lost.")
                 input("Press ENTER when you're ready to play.")
                 # Finish displaying the rules and start the game
@@ -145,6 +112,8 @@ def main():
             print("\nProgram terminated by the user.")
             sys.exit()
     
+    duplicate_preference = False
+
     # Ask if duplicates are allowed or not
     while True:
 
@@ -175,12 +144,12 @@ def main():
     while True:
 
         try:
-            chosen_difficulty = input("Enter difficulty (2, 3, 4 or 5): ")
+            chosen_difficulty = int(input("Enter difficulty (2, 3, 4 or 5): "))
 
-            if int(chosen_difficulty) in range (1, 5):
-                print(f"The code will have {chosen_difficulty} digits.")
+            if chosen_difficulty in range (1, 5):
+                print(f"The code will have {chosen_difficulty} digits and you will have {round_count_per_difficulty[chosen_difficulty]} rounds to solve it.")
                 break
-            elif int(chosen_difficulty) not in range (1, 5):
+            elif chosen_difficulty not in range (1, 5):
                 # Entered difficulty not a number between 
                 print("Please enter the difficulty between 2 and 5 (inclusive).")
             else:
@@ -195,25 +164,43 @@ def main():
             print("\nProgram terminated by the user.")
             sys.exit()
 
-    ...
-    # duplicate_preference is True or False
-    generated_code = generate_code(int(chosen_difficulty), duplicate_preference)
+    round_count = 0
 
-    headers = ["GUESS", "RESPONSE"]
+    try:
+        generated_code = str(generate_secret_code(chosen_difficulty, duplicate_preference))
+        print("the code is", generated_code)
+        # generated code is string
+        history = []
 
-    while True:
+        while round_count < round_count_per_difficulty[chosen_difficulty]:
+            guess = str(input(f"Enter your guess ({chosen_difficulty} digits): "))
 
-        try:
-            if ...:
-                ...
-            elif ...:
-                ...
-            else:
-                ...
-        except:
-            ...
+            if not guess.isdigit() or len(guess) != chosen_difficulty:
+                print(f"Invalid input. Please enter a {chosen_difficulty}-digit number.")
+                continue
+
+            bulls, cows = evaluate_guess(generated_code, guess)
+            green_circle = emoji.emojize(":green_circle:")
+            yellow_circle = emoji.emojize(":yellow_circle:")
+            hints = (green_circle * bulls) + (yellow_circle * cows)
+            
+            history.append([guess, hints])
+            display_board(history)
+            round_count += 1
+
+            if bulls == len(generated_code):
+                print(emoji.emojize("Congratulations! You've guessed the secret code :party_popper: :party_popper:"))
+                break
+            
+            if round_count == round_count_per_difficulty[chosen_difficulty]:
+                print(f"Sorry, you weren't able to guess the secret code in {round_count_per_difficulty[chosen_difficulty]} rounds. It was {generated_code}.")
+                print(emoji.emojize("Better luck next time :disappointed_face:"))
+
+
+    except KeyboardInterrupt:
+        print("\nProgram interrupted by the player.")
     
 
 
 if __name__ == "__main__":
-    main()
+    bulls_and_cows_game()
