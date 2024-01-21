@@ -1,6 +1,8 @@
-tabulate
-tabulate[widechars]
-emoji
-random
 os
 sys
+random
+emoji
+tabulate
+tabulate[widechars]
+pyfiglet
+inflect
